@@ -39,6 +39,6 @@ io.on('connection', function(socket){
   })
 })
 
-server.listen(8080, function() {
+server.listen(3000, function() {
   console.log('Socket IO server listening on port 3000');
 });
