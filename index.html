@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .chatting_area {
+      border: solid black 1px;
+      width : 200px;
+      height : 200px;
+      margin : 0px;
+    }
+    .msg {
+      font-size: 10px;
+      font-style: bold;
+      margin: 0px;
+    }
+  </style>
+</head>
+<body>
+  <script src="/socket.io/socket.io.js"></script>
+  <div class="login">
+    <p>Username : <input id="username"></p>
+    <p>공간 선택(오피스 번호 입력) : <input id="room_num" type="number"><button onclick="login()">Join</button></p>
+  </div>
+  
+
+  <div class="chat">
+    <h1 id="space_data">현재 공간 : 대공간 포럼</h1>
+    <div class="chatting_area"></div>
+    <input id="message"></input>
+    <button onclick="sendChat()">Send Message</button>
+    <button onclick="getClients()">Get Clients</button>
+    <p>공간 변경(오피스 번호 입력) : <input id="room_num" type="number"><button onclick="join()">Join</button></p>
+  </div>
+  
+
+  <script>
+    document.getElementsByClassName('login')[0].style.display = 'block';
+    document.getElementsByClassName('chat')[0].style.display = 'none';
+    var socket = io();
+
+    socket.on('new_user', (name) => {
+      console.log('new user!', name);
+      addMessage('', `New user logged : ${name}`);
+    })
+
+    socket.on('client_chatting_update', (data) => {
+      addMessage(data.sender, data.msg)
+    })
+    
+    function login(){
+      const username = document.getElementById('username').value;
+      socket.username = username;
+      console.log(socket.username, socket.id);
+      join();
+    }
+
+    function join(){
+      const room_num = document.getElementById('room_num').value;
+      console.log(room_num);
+
+      clearMessage();
+
+      document.getElementsByClassName('login')[0].replaceChildren();
+      document.getElementsByClassName('chat')[0].style.display = 'block';
+
+      if(room_num == 0) {
+        document.getElementById('space_data').innerHTML = '현재 공간 : ' + '대공간 포럼';
+        socket.emit('change_room', {
+          username: socket.username,
+          room: 'forum'
+        });
+      }
+      else {
+        const room = '오피스' + room_num;
+        document.getElementById('space_data').innerHTML = '현재 공간 : ' + room;
+        socket.emit('change_room', {
+          username: socket.username,
+          room
+        });
+      }
+    }
+
+
+    function sendChat(){
+      const data = getMessage();
+      console.log(data);
+      // addMessage('', 'Me : ' + data.msg);
+      socket.emit('chatting_update', {
+        sender:data.sender,
+        msg:data.msg
+      });
+    }
+
+
+    function getMessage(){
+      const msg = document.getElementById('message').value;
+      document.getElementById('message').value = '';
+      return {
+        sender:socket.username,
+        msg
+      };
+    }
+
+    function addMessage(sender, msg){
+      // //채팅창 활성화 안된 상태면 무시
+      // if(document.getElementsByClassName('chat')[0].style.display === 'none') return;
+
+      let _msg = ""
+      
+      if(sender == '') {
+        _msg += msg;
+      }
+      else {
+        _msg +=`${sender} : ${msg}`;
+      }
+
+      let tagArea = document.getElementsByClassName('chatting_area')[0];
+      let new_msg = document.createElement('p');
+      new_msg.setAttribute('class', 'msg');
+      new_msg.innerHTML = _msg;
+      tagArea.appendChild(new_msg);
+    }
+
+    function clearMessage(msg) {
+      let tagArea = document.getElementsByClassName('chatting_area')[0];
+      tagArea.replaceChildren();
+    }
+
+    function getClients() {
+      socket.emit('get_room_clients');
+    }
+
+
+  </script>
+</body>
+</html>
